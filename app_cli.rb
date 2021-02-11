@@ -8,7 +8,7 @@ class Bowling
   BOWL1_OPTIONS = %w(strike miss 1 2 3 4 5 6 7 8 9)
   BOWL2_OPTIONS = %w(spare miss 1 2 3 4 5 6 7 8 9)
   OPTION_SYMBOLS = { "strike" => "X", "miss" => "-", "spare" => "/" }
-  STRIKE_VALUE = { "X" => 10 } # TODO maybe change this
+  STRIKE_VALUE = { "X" => 10 }
 
   def initialize()
     @current_frame = 1
@@ -32,6 +32,8 @@ class Bowling
     display_score
   end
 
+  private
+
   def display_score
     rows = []
     frame_array = ["Frame"]
@@ -46,23 +48,16 @@ class Bowling
     end
     rows << frame_array << input_array << score_array
     score_table = Terminal::Table.new :rows => rows, :style => { width: 80 }
-    puts "You are currently on frame #{current_frame}."
+    message = "You are currently on frame #{current_frame}."
+    game_complete = "Hope you had fun! Here's the final score."
+    puts current_frame <= TOTAL_FRAMES ? message : game_complete
     puts score_table
-  end
-
-  def print_score_table(frame_strip, input_strip, score_strip)
-    message = "You are bowling in frame #{current_frame}\n\n"
-    closing_message = "Hope you had fun. Here's the fine score\n\n"
-    puts current_frame > 10 ? closing_message : message
-    puts frame_strip
-    puts input_strip
-    puts score_strip
-    puts "\n"
   end
 
   def bowler_bowls
     bowl1_input = initial_bowl
     return if bowl1_input == "X"
+    update_score_first_bowl
 
     display_score
     pins_left = TOTAL_PINS - bowl1_input.to_i
@@ -70,7 +65,13 @@ class Bowling
     bowler.bowl(options_left, current_frame, OPTION_SYMBOLS)
   end
 
-  def update_score()
+  def update_score_first_bowl
+    update_strike
+    update_spare
+    update_total
+  end
+
+  def update_score
     update_strike
     update_spare
     update_frame
@@ -87,8 +88,11 @@ class Bowling
 
   def update_strike
     update_9th_frame_strike if strike_on_9th_frame?
+    p score
     update_two_strikes_in_a_row if two_previous_bowls_strikes?
-    update_last_strike if last_frame_strike_this_frame_no_strike?
+    p score
+    update_lastest_strike if last_frame_strike_this_frame_no_strike?
+    p score
   end
 
   def update_spare
@@ -102,19 +106,38 @@ class Bowling
   end
 
   def update_frame
-    unless strike_or_spare
+    unless strike_or_spare?
       prior_frame = score[current_frame - 2]
-      self.score[current_frame - 1] += sum_of_frame
-      self.score[current_frame - 1] += prior_frame unless final_frame?
+      self.score[current_frame - 1] += calculate_frame_sum
+      unless final_frame? || current_frame == 1
+        self.score[current_frame - 1] += prior_frame
+      end
     end
   end
 
-  def update_total
-    return if final_frame?
-    self.score[-1] += strike_or_spare ? 10 : calculate_frame_sum
+  def last_bowl
+    bowler.inputs[current_frame - 1][-1].to_i
   end
 
-  def strike_or_spare
+  def second_to_last_bowl
+    bowler.inputs[current_frame - 1][0].to_i
+  end
+
+  def last_bowl_strike?
+    bowler.inputs[current_frame - 1][-1] == "X"
+  end
+
+  def last_bowl_spare?
+    bowler.inputs[current_frame - 1][-1] == "/"
+  end
+
+  def update_total
+    self.score[-1] += TOTAL_PINS if last_bowl_strike?
+    self.score[-1] += TOTAL_PINS - second_to_last_bowl if last_bowl_spare?
+    self.score[-1] += last_bowl
+  end
+
+  def strike_or_spare?
     bowler.inputs[current_frame - 1][-1].match(/(X|\/)/)
   end
 
@@ -124,6 +147,10 @@ class Bowling
     input[current_frame - 2].include?("/")
   end
 
+  def previous_frame_strike?
+    bowler.inputs[current_frame - 2][0] == "X"
+  end
+
   def sum_of_frame
     bowler.inputs[current_frame - 1].map(&:to_i).sum
   end
@@ -131,7 +158,8 @@ class Bowling
   def two_previous_bowls_strikes?
     input = bowler.inputs
     return false if final_frame? && input[-1].length > 1
-    input[current_frame - 3][0] == "X" && input[current_frame - 2][0] == "X"
+    input[current_frame - 3][0] == "X" && previous_frame_strike? &&
+    input[current_frame - 1].length == 1
   end
 
   def update_two_strikes_in_a_row
@@ -145,19 +173,22 @@ class Bowling
   end
 
   def last_frame_strike_this_frame_no_strike?
+    return if final_frame?
     input = bowler.inputs
-    input[current_frame - 2][0] == "X" && input[current_frame - 1][-1] != "X"
+    previous_frame_strike? && !last_bowl_strike? &&
+    input[current_frame - 1].length == 2
   end
 
-  def update_last_strike
-    bonus = strike_or_spare ? 10 : calculate_frame_sum
+  def update_lastest_strike
+    bonus = strike_or_spare? ? 10 : calculate_frame_sum
     score[current_frame - 2] += bonus + 10
     score[current_frame - 2] += score[current_frame - 3] if current_frame > 2
     score[-1] += bonus
   end
 
   def strike_on_9th_frame?
-    final_frame? && bowler.inputs[-1].length == 2
+    input = bowler.inputs
+    final_frame? && input[-1].length == 2 && input[-2][0] == "X"
   end
 
   def update_9th_frame_strike
@@ -194,12 +225,12 @@ class Bowling
     clear_screen
     display_score
 
-    extra_bowl_from_strike if bowler.inputs[-1][0] == "X"
-    initial_bowl if strike_or_spare
+    extra_bowl_from_strike if last_bowl_strike?
+    initial_bowl if strike_or_spare?
 
     final_frame_score = calculate_frame_sum
-
-    score[-1] += final_frame_score
+    # score[-1] += second_to_last_bowl
+    score[-1] = score[-2] + final_frame_score
   end
 
   def clear_screen
@@ -208,8 +239,7 @@ class Bowling
 
   def display_welcome_message
     clear_screen
-    puts "Welcome to Bowling!"
-    puts ""
+    puts "Welcome to Bowling!\n\n"
   end
 
 end
