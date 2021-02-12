@@ -10,36 +10,26 @@ class Bowler
     @total_pins = total_pins
   end
 
-  def bowl(frame)
+  def bowl(frame, input)
     remaining_options = possible_options(frame)
-    pins = prompt_for_input(remaining_options)
-    self.inputs[frame - 1].push(OPTION_SYMBOLS[pins] || pins)
+    return if !remaining_options.include?(input.to_s)
+    self.inputs[frame - 1].push(OPTION_SYMBOLS[input] || input)
   end
 
   def possible_options(frame)
     last_bowl = inputs[frame - 1][-1]
-    return BOWL_OPTIONS + ["strike"] if last_bowl.nil? || last_bowl == "X"
+    return BOWL_OPTIONS + ["strike"] if new_set_of_pins?(frame, last_bowl)
 
     pins_left = total_pins - last_bowl.to_i
     BOWL_OPTIONS.select { |option| option.to_i < pins_left } + ["spare"]
   end
 
-  def prompt_for_input(options)
-    pins = nil
-    options_sentence = options.join(", ")
-    puts "Please specify how you did on this bowl."
-    puts "Choose from this list of options: #{options_sentence}."
-    loop do
-      pins = gets.chomp.downcase
-      break if options.include?(pins)
-      puts "Sorry, that's an invalid choice."
-      puts "Choose from this list of options: #{options_sentence}."
-    end
-
-    pins
-  end
-
   def option_symbols(name)
     OPTION_SYMBOLS[name]
+  end
+
+  def new_set_of_pins?(frame, last_bowl)
+    (last_bowl.nil? || last_bowl == "X") ||
+    (frame == total_frames && last_bowl == "/")
   end
 end
