@@ -10,10 +10,10 @@ class Bowling
   OPTION_SYMBOLS = { "strike" => "X", "miss" => "-", "spare" => "/" }
   STRIKE_VALUE = { "X" => 10 }
 
-  def initialize()
+  def initialize(bowler)
     @current_frame = 1
     @score = Array.new(10).fill(0)
-    @bowler = Bowler.new()
+    @bowler = bowler
   end
 
   def play
@@ -88,11 +88,8 @@ class Bowling
 
   def update_strike
     update_9th_frame_strike if strike_on_9th_frame?
-    p score
     update_two_strikes_in_a_row if two_previous_bowls_strikes?
-    p score
     update_lastest_strike if last_frame_strike_this_frame_no_strike?
-    p score
   end
 
   def update_spare
@@ -267,5 +264,9 @@ class Bowler
   end
 end
 
-game = Bowling.new
+bowler = Bowler.new
+game = Bowling.new(bowler)
 game.play
+
+# scoring class
+# take out display stuff
