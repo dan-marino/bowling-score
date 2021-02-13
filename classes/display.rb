@@ -1,18 +1,28 @@
 require 'terminal-table'
 
 class Display
-  attr_accessor :display
+  attr_reader :display
 
   def initialize
   end
 
-  def display_score_header(frame, game_over)
+  def score_table(score, inputs, frame, game_over)
+    clear_screen
+    print_score_header(frame, game_over)
+    print_score_table(score, inputs)
+  end
+
+  private
+
+  attr_writer :display
+
+  def print_score_header(frame, game_over)
     midgame_message = "You are currently on frame #{frame}\n\n"
     endgame_message = "Thanks for playing! Run `game.reset` to play again\n\n"
     puts game_over ? endgame_message : midgame_message
   end
 
-  def display_score_table(score, inputs)
+  def print_score_table(score, inputs)
     score_table = create_score_table(score, inputs)
     puts score_table
   end
@@ -31,12 +41,6 @@ class Display
     end
     rows << frame_array << input_array << score_array
     Terminal::Table.new :rows => rows, :style => { width: 80 }
-  end
-
-  def score_table(score, inputs, frame, game_over)
-    clear_screen
-    display_score_header(frame, game_over)
-    display_score_table(score, inputs)
   end
 
   def clear_screen

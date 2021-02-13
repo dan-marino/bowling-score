@@ -1,5 +1,5 @@
 class Bowler
-  attr_accessor :inputs, :total_frames, :total_pins
+  attr_reader :inputs
 
   BOWL_OPTIONS = %w(miss 1 2 3 4 5 6 7 8 9)
   OPTION_SYMBOLS = { "strike" => "X", "miss" => "-", "spare" => "/" }
@@ -16,20 +16,25 @@ class Bowler
     self.inputs[frame - 1].push(OPTION_SYMBOLS[input] || input)
   end
 
+  def option_symbols(name)
+    OPTION_SYMBOLS[name]
+  end
+
+  private
+
+  attr_accessor :total_frames, :total_pins
+  attr_writer :inputs
+
+  def new_set_of_pins?(frame, last_bowl)
+    (last_bowl.nil? || last_bowl == OPTION_SYMBOLS["strike"]) ||
+    (frame == total_frames && last_bowl == OPTION_SYMBOLS["spare"])
+  end
+
   def possible_options(frame)
     last_bowl = inputs[frame - 1][-1]
     return BOWL_OPTIONS + ["strike"] if new_set_of_pins?(frame, last_bowl)
 
     pins_left = total_pins - last_bowl.to_i
     BOWL_OPTIONS.select { |option| option.to_i < pins_left } + ["spare"]
-  end
-
-  def option_symbols(name)
-    OPTION_SYMBOLS[name]
-  end
-
-  def new_set_of_pins?(frame, last_bowl)
-    (last_bowl.nil? || last_bowl == "X") ||
-    (frame == total_frames && last_bowl == "/")
   end
 end

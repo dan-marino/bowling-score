@@ -1,5 +1,5 @@
 class ScoreBoard
-  attr_accessor :totals, :bowler, :strike, :spare, :frame, :total_pins
+  attr_reader :totals, :bowler
 
   def initialize(bowler, total_frames, total_pins)
     @totals = Array.new(total_frames).fill(0)
@@ -18,41 +18,18 @@ class ScoreBoard
     update_total
   end
 
-  def update_strike
-    update_second_to_last_frame_strike if strike_on_second_to_last_frame?
-    update_frame_two_strikes_in_a_row if two_previous_bowls_strikes?
-    update_lastest_strike if last_frame_strike_this_frame_no_strike?
-  end
-
-  def update_spare
-    if previous_frame_spare? && !bowled_three_times?
-      bonus = last_bowl_strike? ? total_pins : bowler.inputs[frame - 1][0].to_i
-      self.totals[frame - 2] = 10 + bonus
-      self.totals[frame - 2] += totals[frame - 3] if frame > 2
-      self.totals[-1] += bonus
-    end
-  end
-
-  def update_frame
-    unless strike_or_spare? || first_bowl_of_frame?
-      prior_frame = totals[frame - 2]
-      self.totals[frame - 1] += calculate_frame_sum
-      unless final_frame? || frame == 1
-        self.totals[frame - 1] += prior_frame
-      end
-    end
-  end
-
-  def update_total
-    p last_bowl
-    self.totals[-1] += total_pins if last_bowl_strike?
-    self.totals[-1] += total_pins - second_to_last_bowl if last_bowl_spare?
-    self.totals[-1] += last_bowl
-  end
-
   def total
     totals[-1]
   end
+
+  def frame_complete?
+    final_frame? ? final_frame_complete? : non_final_frame_complete?
+  end
+
+  private
+
+  attr_writer :totals, :bowler
+  attr_accessor :strike, :spare, :frame, :total_pins
 
   def two_previous_bowls_strikes?
     input = bowler.inputs
@@ -102,13 +79,59 @@ class ScoreBoard
     final_frame_score
   end
 
-  def final_frame?
-    frame == totals.length
+  def update_strike
+    update_second_to_last_frame_strike if strike_on_second_to_last_frame?
+    update_frame_two_strikes_in_a_row if two_previous_bowls_strikes?
+    update_lastest_strike if last_frame_strike_this_frame_no_strike?
   end
 
-  def final_tally
-    final_frame_score = calculate_frame_sum
-    self.totals[-1] = totals[-2] + final_frame_score
+  def update_spare
+    if previous_frame_spare? && !bowled_three_times?
+      bonus = last_bowl_strike? ? total_pins : bowler.inputs[frame - 1][0].to_i
+      self.totals[frame - 2] = 10 + bonus
+      self.totals[frame - 2] += totals[frame - 3] if frame > 2
+      self.totals[-1] += bonus
+    end
+  end
+
+  def update_frame
+    unless last_bowl_spare? || last_bowl_strike? || first_bowl_of_frame?
+      prior_frame = totals[frame - 2]
+      self.totals[frame - 1] += calculate_frame_sum
+      unless final_frame? || frame == 1
+        self.totals[frame - 1] += prior_frame
+      end
+    end
+  end
+
+  def update_total
+    self.totals[-1] += total_pins if last_bowl_strike?
+    self.totals[-1] += total_pins - second_to_last_bowl if last_bowl_spare?
+    self.totals[-1] += last_bowl
+  end
+
+  def bowled_twice_this_frame?
+    bowler.inputs[frame - 1].length == 2
+  end
+
+  def bowled_three_times?
+    bowler.inputs[frame - 1].length == 3
+  end
+
+  def no_extra_bowl
+    !(second_to_last_bowl_strike? || last_bowl_spare?)
+  end
+
+  def final_frame_complete?
+    (no_extra_bowl && bowled_twice_this_frame?) || bowled_three_times?
+  end
+
+  def non_final_frame_complete?
+    bowled_twice_this_frame? || last_bowl_strike?
+  end
+
+  def final_frame?
+    frame == totals.length
   end
 
   def first_bowl_of_frame?
@@ -135,10 +158,6 @@ class ScoreBoard
     bowler.inputs[frame - 1][-1] == spare
   end
 
-  def strike_or_spare?
-    last_bowl_spare? || last_bowl_strike?
-  end
-
   def previous_frame_spare?
     return false if final_frame? && bowler.inputs[-1].length == 1
     bowler.inputs[frame - 2].include?(spare)
@@ -151,27 +170,5 @@ class ScoreBoard
   def strike_on_second_to_last_frame?
     final_frame? && bowler.inputs[-1].length == 2 &&
     bowler.inputs[-2][0] == strike
-  end
-
-  def bowled_twice_this_frame?
-    input = bowler.inputs
-    input[frame - 1].length == 2
-  end
-
-  def bowled_three_times?
-    input = bowler.inputs
-    input[frame - 1].length == 3
-  end
-
-  def no_extra_bowl
-    !(second_to_last_bowl_strike? || last_bowl_spare?)
-  end
-
-  def final_frame_complete?
-    (no_extra_bowl && bowled_twice_this_frame?) || bowled_three_times?
-  end
-
-  def frame_complete?
-    final_frame? ? final_frame_complete? : bowled_twice_this_frame? || last_bowl_strike?
   end
 end

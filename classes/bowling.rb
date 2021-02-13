@@ -1,11 +1,9 @@
-
-
 require_relative "bowler"
 require_relative "score_board"
 require_relative "display"
 
 class Bowling
-  attr_accessor :score, :current_frame, :bowler, :display
+  attr_reader :score, :current_frame, :bowler, :display
 
   TOTAL_FRAMES = 10
   TOTAL_PINS = 10
@@ -32,14 +30,6 @@ class Bowling
     display.score_table(score.totals, bowler.inputs, current_frame, game_over?)
   end
 
-  def advance_frame
-    self.current_frame += 1
-  end
-
-  def game_over?
-    current_frame > TOTAL_FRAMES
-  end
-
   def total_score
     score.total
   end
@@ -51,4 +41,18 @@ class Bowling
   def inputs(frame)
     bowler.inputs[frame - 1]
   end
+
+  private
+
+  attr_writer :score, :current_frame, :bowler, :display
+  
+  def advance_frame
+    self.current_frame += 1
+  end
+
+  def game_over?
+    current_frame > TOTAL_FRAMES
+  end
+
+
 end
