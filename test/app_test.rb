@@ -14,7 +14,7 @@ class BowlingTest < MiniTest::Test
   end
 
   def test_bowling_game_starts_on_frame_1
-    assert_equal(1, @game.current_frame)
+    assert_equal(1, @game.frame)
   end
 
   def test_bowling_game_starts_with_score_of_0
@@ -23,7 +23,7 @@ class BowlingTest < MiniTest::Test
 
   def test_bowling_non_strike_on_first_bowl_does_not_advance_frame
     @game.play(5)
-    assert_equal(1, @game.current_frame)
+    assert_equal(1, @game.frame)
   end
 
   def test_total_score_updates_after_non_strike_bowl
@@ -33,13 +33,13 @@ class BowlingTest < MiniTest::Test
 
   def test_bowling_strike_on_first_bowl_advances_frame
     @game.play("strike")
-    assert_equal(2, @game.current_frame)
+    assert_equal(2, @game.frame)
   end
 
   def test_completing_frame_advances_frame
     @game.play(4)
     @game.play(4)
-    assert_equal(2, @game.current_frame)
+    assert_equal(2, @game.frame)
   end
 
   def test_total_score_updates_after_strike_bowl
@@ -121,18 +121,33 @@ class BowlingTest < MiniTest::Test
 
   def test_cannot_enter_invalid_number_on_second_bowl
     @game.play(5)
-    @game.play(6) # Over the total pin limit
+    @game.play(6) # Over the total pin limit for a 10 pin frame
     assert_equal([5], @game.inputs(1))
   end
 
-  def test_perfect_game_score
-    12.times { @game.play("strike") }
-    assert_equal(300, @game.total_score)
+  def test_possible_options_for_second_bowl
+    @game.play(5)
+    assert_equal(%w(miss 1 2 3 4 spare), @game.next_set_of_pins)
+  end
+
+  def test_possible_options_for_strike
+    @game.play("strike")
+    assert_equal(%w(miss 1 2 3 4 5 6 7 8 9 strike), @game.next_set_of_pins)
   end
 
   def test_perfect_game_score
     12.times { @game.play("strike") }
     assert_equal(300, @game.total_score)
+  end
+
+  def test_perfect_game_frame_score
+    12.times { @game.play("strike") }
+    frame_scores = []
+    1.upto(10) { |frame| frame_scores << @game.total_frame_score(frame) }
+
+    expected_output = [30, 60, 90, 120, 150, 180, 210, 240, 270, 300]
+
+    assert_equal(frame_scores, expected_output)
   end
 
   def test_not_getting_extra_bowl_in_10th_frame
@@ -177,6 +192,6 @@ class BowlingTest < MiniTest::Test
   def test_game_reset_resets_frame_to_1
     20.times { @game.play(4) }
     @game.reset
-    assert_equal(1, @game.current_frame)
+    assert_equal(1, @game.frame)
   end
 end

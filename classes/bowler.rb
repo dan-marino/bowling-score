@@ -1,40 +1,34 @@
 class Bowler
-  attr_reader :inputs
+  attr_reader :inputs, :roll_symbols, :roll_options
 
-  BOWL_OPTIONS = %w(miss 1 2 3 4 5 6 7 8 9)
-  OPTION_SYMBOLS = { "strike" => "X", "miss" => "-", "spare" => "/" }
-
-  def initialize(total_frames, total_pins)
-    @inputs = Array.new(total_frames).map { |element| element = Array.new }
-    @total_frames = total_frames
+  def initialize(total_frames, total_pins, roll_symbols)
+    @inputs = Array.new(total_frames).map { |_| [] }
     @total_pins = total_pins
+    @roll_symbols = roll_symbols
+    @roll_options = ["miss"] + (1...total_pins).to_a.map(&:to_s)
   end
 
-  def bowl(frame, input)
+  def roll(input, frame)
     remaining_options = possible_options(frame)
     return if !remaining_options.include?(input.to_s)
-    self.inputs[frame - 1].push(OPTION_SYMBOLS[input] || input)
+    self.inputs[frame - 1].push(roll_symbols[input] || input)
+    roll_symbols[input] || input
   end
 
-  def option_symbols(name)
-    OPTION_SYMBOLS[name]
+  def possible_options(frame)
+    last_roll = inputs[frame - 1][-1]
+    return roll_options + ["strike"] if new_set_of_pins?(last_roll)
+    pins_left = total_pins - last_roll.to_i
+    roll_options.select { |option| option.to_i < pins_left } + ["spare"]
   end
 
   private
 
-  attr_accessor :total_frames, :total_pins
-  attr_writer :inputs
+  attr_accessor :total_pins
+  attr_writer :inputs, :roll_symbols, :roll_options
 
-  def new_set_of_pins?(frame, last_bowl)
-    (last_bowl.nil? || last_bowl == OPTION_SYMBOLS["strike"]) ||
-    (frame == total_frames && last_bowl == OPTION_SYMBOLS["spare"])
-  end
-
-  def possible_options(frame)
-    last_bowl = inputs[frame - 1][-1]
-    return BOWL_OPTIONS + ["strike"] if new_set_of_pins?(frame, last_bowl)
-
-    pins_left = total_pins - last_bowl.to_i
-    BOWL_OPTIONS.select { |option| option.to_i < pins_left } + ["spare"]
+  def new_set_of_pins?(last_roll)
+    (last_roll.nil? || last_roll == roll_symbols["strike"]) ||
+    (last_roll == roll_symbols["spare"])
   end
 end
