@@ -17,10 +17,11 @@ before do
 end
 
 helpers do
+  INPUT_NAMES = { "X" => "strike", "/" => "spare", "-" => "miss" }
+
   def reset_game_from_state(inputs)
     game = Bowling.new
-    p inputs
-    inputs.each { |input| game.play(input) }
+    inputs.each { |input| game.play(INPUT_NAMES[input] || input) }
     game
   end
 
@@ -29,7 +30,7 @@ helpers do
       frame_scores: game.frame_scores,
       inputs: game.inputs,
       frame: game.frame,
-      roll_of_frame: game.roll_of_frame,
+      roll_left: game.rolls_left,
       next_set_of_pins: game.next_set_of_pins
     }
   end
@@ -53,5 +54,11 @@ post "/api/play/:input" do
   game = reset_game_from_state(session[:inputs])
   game.play(params[:input])
   session[:inputs] = game.inputs.flatten
+  json format_state(game)
+end
+
+get "/" do
+  game = Bowling.new
+  13.times { game.play("strike") }
   json format_state(game)
 end

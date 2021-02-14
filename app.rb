@@ -3,7 +3,7 @@ require "./classes/bowling"
 game = Bowling.new
 
 # Walkthrough of a sample game
-# 
+#
 # game.play(3)         # Frame 1
 # game.play("miss")    # Frame 1
 # game.play(9)         # Frame 2

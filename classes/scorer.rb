@@ -13,7 +13,7 @@ class Scorer
     self.inputs = inputs
     update_strike(frame, roll_of_frame) if update_strike?(roll_of_frame)
     update_spare(frame) if update_spare?(roll_of_frame)
-    update_frame(frame) if update_frame?(roll_of_frame)
+    update_frame(frame, roll_of_frame) if update_frame?(roll_of_frame)
     update_total
   end
 
@@ -52,9 +52,11 @@ class Scorer
     last_roll_spare?(2) && roll_of_frame != 3
   end
 
-  def update_frame(frame)
+  def update_frame(frame, roll_of_frame)
     prior_frame = totals[frame - 2]
-    sum = final_frame?(frame) || frame == 1 ? sum_frame : sum_frame(1)
+
+    sum = roll_of_frame == 3 || frame == 1 ? sum_frame : sum_frame(1)
+    sum = 0 if final_frame?(frame) && roll_of_frame == 2
     self.totals[frame - 1] += sum
     unless final_frame?(frame) || frame == 1
       self.totals[frame - 1] += prior_frame

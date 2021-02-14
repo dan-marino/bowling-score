@@ -3,9 +3,10 @@ require_relative "scorer"
 require_relative "display"
 
 class Bowling
-  attr_reader :scorer, :bowler, :display, :frame_scores, :inputs, :total_score,
+  attr_reader :scorer, :bowler, :display, :inputs, :total_score,
               :frame, :roll_of_frame
 
+  ROLLS_PER_FRAME = 2
   TOTAL_FRAMES = 10
   TOTAL_PINS = 10
   ROLL_SYMBOLS = { "strike" => "X", "spare" => "/", "miss" => "-" }
@@ -32,6 +33,7 @@ class Bowling
         advance_roll_of_frame
         scorer.update(frame, roll_of_frame, last_three_rolls)
       end
+
     end
 
     advance_frame if frame_complete?
@@ -40,7 +42,7 @@ class Bowling
   end
 
   def next_set_of_pins
-    bowler.possible_options(frame)
+    game_over? ? [] : bowler.possible_options(frame)
   end
 
   def total_score
@@ -55,9 +57,17 @@ class Bowling
     frame.nil? ? bowler.inputs : bowler.inputs[frame - 1]
   end
 
+  def rolls_left
+    extra_roll? ? calculate_rolls_left + 1 : calculate_rolls_left
+  end
+
+  def frame_scores
+    scorer.totals
+  end
+
   private
 
-  attr_writer :scorer, :bowler, :display, :frame_scores, :inputs, :total_score,
+  attr_writer :scorer, :bowler, :display, :inputs, :total_score,
               :frame, :roll_of_frame
 
   def advance_frame
@@ -77,10 +87,28 @@ class Bowling
     frame == TOTAL_FRAMES
   end
 
+  def calculate_rolls_left
+    ROLLS_PER_FRAME - roll_of_frame
+  end
+
+  def extra_roll?
+    return false unless final_frame?
+
+    last_two_rolls = last_three_rolls[1..]
+
+    extra_roll1 = last_two_rolls[-1] == ROLL_SYMBOLS["strike"] &&
+    roll_of_frame == 1
+
+    extra_roll2 = (last_two_rolls.include?(ROLL_SYMBOLS["strike"]) ||
+    last_two_rolls.include?(ROLL_SYMBOLS["spare"])) && roll_of_frame == 2
+
+    extra_roll1 || extra_roll2
+  end
+
   def final_frame_done?(rolls)
-    (roll_of_frame == 3) &&
-    !(rolls.include?(ROLL_SYMBOLS["stirke"]) ||
-    rolls.include?(ROLL_SYMBOLS["spare"]))
+    ((roll_of_frame == 2) &&
+    !(rolls.include?(ROLL_SYMBOLS["strike"]) ||
+    rolls.include?(ROLL_SYMBOLS["spare"]))) || roll_of_frame == 3 
   end
 
   def non_final_frame_done?(rolls)
@@ -96,11 +124,5 @@ class Bowling
     rolls = last_three_rolls
     return if rolls.nil?
     final_frame? ? final_frame_done?(rolls) : non_final_frame_done?(rolls)
-  end
-
-  def update_state
-    self.state["frame_scores"] = scorer.totals
-    self.state["inputs"] = bowler.inputs
-    self.state["total_score"] = scorer.totals[-1]
   end
 end
