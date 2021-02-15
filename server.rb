@@ -56,9 +56,3 @@ post "/api/play/:input" do
   session[:inputs] = game.inputs.flatten
   json format_state(game)
 end
-
-get "/" do
-  game = Bowling.new
-  13.times { game.play("strike") }
-  json format_state(game)
-end
