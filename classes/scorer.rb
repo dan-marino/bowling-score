@@ -23,29 +23,37 @@ class Scorer
   attr_accessor :inputs, :strike, :spare, :frame, :total_pins
 
   def update_strike(frame, roll_of_frame)
-    first_bonus = last_roll_strike?(2) ? total_pins : inputs[-2].to_i
-    second_bonus = last_roll_strike? ? total_pins : inputs[-1].to_i
-    bonus = last_roll_spare? ? total_pins : first_bonus + second_bonus
+    bonus = calculate_strike_bonus
 
     if update_two_frames_ago?(frame, roll_of_frame)
-      self.totals[frame - 3] += bonus + total_pins
-      self.totals[frame - 3] += totals[frame - 4] if frame > 3
+      update_previous_frame(bonus, frame, 3)
     else
-      self.totals[frame - 2] += bonus + total_pins
-      self.totals[frame - 2] += totals[frame - 3] if frame > 2
+      update_previous_frame(bonus, frame)
     end
-    self.totals[-1] += bonus
+    totals[-1] += bonus
   end
 
   def update_strike?(roll_of_frame)
     last_roll_strike?(3) && roll_of_frame != 3
   end
 
+  def calculate_strike_bonus
+    first_bonus = last_roll_strike?(2) ? total_pins : inputs[-2].to_i
+    second_bonus = last_roll_strike? ? total_pins : inputs[-1].to_i
+    last_roll_spare? ? total_pins : first_bonus + second_bonus
+  end
+
+  def update_previous_frame(bonus, current_frame, frame = 2)
+    totals[current_frame - frame] += bonus + total_pins
+    return unless current_frame > frame
+    totals[current_frame - frame] += totals[current_frame - (frame + 1)]
+  end
+
   def update_spare(frame)
     bonus = last_roll_strike? ? total_pins : inputs[-1].to_i
-    self.totals[frame - 2] = 10 + bonus
-    self.totals[frame - 2] += totals[frame - 3] if frame > 2
-    self.totals[-1] += bonus
+    totals[frame - 2] = total_pins + bonus
+    totals[frame - 2] += totals[frame - 3] if frame > 2
+    totals[-1] += bonus
   end
 
   def update_spare?(roll_of_frame)
@@ -53,29 +61,26 @@ class Scorer
   end
 
   def update_frame(frame, roll_of_frame)
-    prior_frame = totals[frame - 2]
-
     sum = roll_of_frame == 3 || frame == 1 ? sum_frame : sum_frame(1)
     sum = 0 if final_frame?(frame) && roll_of_frame == 2
-    self.totals[frame - 1] += sum
-    unless final_frame?(frame) || frame == 1
-      self.totals[frame - 1] += prior_frame
-    end
+    totals[frame - 1] += sum
+    return if final_frame?(frame) || frame == 1
+    totals[frame - 1] += totals[frame - 2]
   end
 
   def update_frame?(roll_of_frame)
     !(last_roll_spare? || last_roll_strike? || last_roll_strike?(2)) &&
-    roll_of_frame == 2
+      roll_of_frame == 2
   end
 
   def update_two_frames_ago?(frame, roll_of_frame)
     (last_roll_strike?(2) || last_roll_strike?) &&
-    (!final_frame?(frame) || roll_of_frame == 1)
+      (!final_frame?(frame) || roll_of_frame == 1)
   end
 
   def sum_frame(starting_position = 0)
     final_frame_score = 0
-    inputs[starting_position...].each do |roll|
+    inputs[starting_position..-1].each do |roll|
       final_frame_score += 10 if roll == strike
       final_frame_score = 10 if roll == spare && final_frame_score < 10
       final_frame_score = 20 if roll == spare && final_frame_score > 10
@@ -85,9 +90,9 @@ class Scorer
   end
 
   def update_total
-    self.totals[-1] += total_pins if last_roll_strike?
-    self.totals[-1] += total_pins - last_roll(2) if last_roll_spare?
-    self.totals[-1] += last_roll
+    totals[-1] += total_pins if last_roll_strike?
+    totals[-1] += total_pins - last_roll(2) if last_roll_spare?
+    totals[-1] += last_roll
   end
 
   def no_extra_roll
