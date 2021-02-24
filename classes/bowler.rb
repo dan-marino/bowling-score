@@ -2,7 +2,7 @@ class Bowler
   attr_reader :inputs, :roll_symbols, :roll_options
 
   def initialize(total_frames, total_pins, roll_symbols)
-    @inputs = Array.new(total_frames).map { |_| [] }
+    @inputs = Array.new(total_frames).map(&:to_a)
     @total_pins = total_pins
     @roll_symbols = roll_symbols
     @roll_options = ["miss"] + (1...total_pins).to_a.map(&:to_s)
@@ -10,9 +10,8 @@ class Bowler
 
   def roll(input, frame)
     remaining_options = possible_options(frame)
-    return if !remaining_options.include?(input.to_s)
-    self.inputs[frame - 1].push(roll_symbols[input] || input)
-    roll_symbols[input] || input
+    return unless remaining_options.include?(input.to_s)
+    inputs[frame - 1].push(roll_symbols[input] || input)
   end
 
   def possible_options(frame)
@@ -29,6 +28,6 @@ class Bowler
 
   def new_set_of_pins?(last_roll)
     (last_roll.nil? || last_roll == roll_symbols["strike"]) ||
-    (last_roll == roll_symbols["spare"])
+      (last_roll == roll_symbols["spare"])
   end
 end
