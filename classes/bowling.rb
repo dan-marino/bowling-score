@@ -3,8 +3,7 @@ require_relative "scorer"
 require_relative "display"
 
 class Bowling
-  attr_reader :scorer, :bowler, :display, :inputs, :total_score,
-              :frame, :roll_of_frame
+  attr_reader :scorer, :bowler, :display, :frame, :roll_of_frame
 
   ROLLS_PER_FRAME = 2
   TOTAL_FRAMES = 10
@@ -17,8 +16,6 @@ class Bowling
 
   def reset
     @frame_scores = []
-    @inputs = []
-    @total_score = 0
     @frame = 1
     @roll_of_frame = 0
     @bowler = Bowler.new(TOTAL_FRAMES, TOTAL_PINS, ROLL_SYMBOLS)
@@ -46,7 +43,7 @@ class Bowling
   end
 
   def total_score
-    scorer.totals[-1]
+    scorer.totals[-1] || 0
   end
 
   def total_frame_score(frame = nil)
@@ -67,8 +64,7 @@ class Bowling
 
   private
 
-  attr_writer :scorer, :bowler, :display, :inputs, :total_score,
-              :frame, :roll_of_frame
+  attr_writer :scorer, :bowler, :display, :frame, :roll_of_frame
 
   def advance_frame
     self.roll_of_frame = 0
@@ -94,10 +90,10 @@ class Bowling
   def extra_roll?
     return false unless final_frame?
 
-    last_two_rolls = last_three_rolls[1..]
+    last_two_rolls = last_three_rolls[1...-1]
 
     extra_roll1 = last_two_rolls[-1] == ROLL_SYMBOLS["strike"] &&
-    roll_of_frame == 1
+                  roll_of_frame == 1
 
     extra_roll2 = (last_two_rolls.include?(ROLL_SYMBOLS["strike"]) ||
     last_two_rolls.include?(ROLL_SYMBOLS["spare"])) && roll_of_frame == 2
@@ -108,7 +104,7 @@ class Bowling
   def final_frame_done?(rolls)
     ((roll_of_frame == 2) &&
     !(rolls.include?(ROLL_SYMBOLS["strike"]) ||
-    rolls.include?(ROLL_SYMBOLS["spare"]))) || roll_of_frame == 3 
+    rolls.include?(ROLL_SYMBOLS["spare"]))) || roll_of_frame == 3
   end
 
   def non_final_frame_done?(rolls)
@@ -117,7 +113,7 @@ class Bowling
 
   def last_three_rolls
     inputs = bowler.inputs.flatten
-    inputs.length > 3 ? bowler.inputs.flatten[-3...] : inputs
+    inputs.length > 3 ? bowler.inputs.flatten[-3..-1] : inputs
   end
 
   def frame_complete?
